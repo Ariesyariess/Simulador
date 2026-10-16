@@ -1,0 +1,55 @@
+# Environment variables and local configuration
+.env
+.env.*
+!.env.example
+!.env.*.example
+config.local.*
+*.local.json
+
+# API keys, credentials, and secret files
+*.secret
+*.credentials
+credentials.json
+service-account*.json
+*-service-account*.json
+*_service_account*.json
+firebase-adminsdk*.json
+google-credentials*.json
+secrets/
+**/secrets/
+.npmrc
+!.npmrc.example
+.pypirc
+.netrc
+.htpasswd
+
+# Private keys and credential bundles
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.ppk
+**/id_rsa
+**/id_ed25519
+**/id_ecdsa
+**/id_dsa
+
+# Local databases, backups, and logs
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+*.backup
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencies and generated test/report data
+node_modules/
+coverage/
+/reports/
+/ReportesJetsHtml/
+/speedkit_resultados.json

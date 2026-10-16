@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Simulador de Conducción Uruguay</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Pantalla de Inicio -->
+        <div id="start-screen" class="overlay">
+            <div class="modal">
+                <h1>Simulador de Conducción Uruguay</h1>
+                <div class="instructions">
+                    <h3>Controles:</h3>
+                    <ul>
+                        <li><strong>W / Flecha Arriba:</strong> Acelerar</li>
+                        <li><strong>S / Flecha Abajo:</strong> Frenar / Reversa</li>
+                        <li><strong>A, D / Flechas Izq, Der:</strong> Dirección</li>
+                        <li><strong>Q, E:</strong> Señaleros (Izquierdo, Derecho)</li>
+                    </ul>
+                    <h3>Normas:</h3>
+                    <p>- Respeta los semáforos, rotondas y pasos peatonales.</p>
+                    <p>- Mantente por debajo de los límites de velocidad.</p>
+                    <p>- ¡Cuidado con los peatones y otros vehículos! Chocar termina la prueba.</p>
+                </div>
+                <div class="start-buttons">
+                    <button id="btn-start" class="btn-primary">COMENZAR</button>
+                    <button id="btn-options" class="btn-secondary">OPCIONES</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menú de Opciones -->
+        <div id="options-modal" class="overlay hidden">
+            <div class="modal options-modal-content">
+                <h2>Configuración</h2>
+
+                <div class="option-group">
+                    <label>Calidad Gráfica:</label>
+                    <select id="opt-quality">
+                        <option value="high" selected>Alta (Sombras + Modelos)</option>
+                        <option value="low">Min Low Poly Superlight</option>
+                    </select>
+                </div>
+
+                <div class="option-group">
+                    <label>Radio / Música:</label>
+                    <div class="radio-inputs">
+                        <input type="text" id="opt-radio-url" placeholder="URL de la Radio" value="https://stream.radiopro.uy/listen/estena/estena">
+                        <span class="or-text">o</span>
+                        <input type="file" id="opt-radio-file" accept="audio/*">
+                    </div>
+                </div>
+
+                <div class="option-group">
+                    <label>Prueba de Conducción:</label>
+                    <div class="config-inputs">
+                        <div class="input-item">
+                            <span>Tiempo (seg):</span>
+                            <input type="number" id="opt-test-time" value="300" min="60">
+                        </div>
+                        <div class="input-item">
+                            <span>Puntaje mín:</span>
+                            <input type="number" id="opt-pass-score" value="70" min="0" max="100">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button id="btn-options-save" class="btn-primary">GUARDAR Y CERRAR</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overlay de Radio (Estilo GTA) -->
+        <div id="radio-overlay" class="hidden">
+            <div id="radio-name">RADIO ESPACIO</div>
+        </div>
+
+        <!-- Pantalla de Resumen / Game Over -->
+        <div id="game-over-screen" class="overlay hidden">
+            <div class="modal summary-modal">
+                <h1 id="game-over-title">🏁 FIN DE LA PRUEBA</h1>
+                <p id="game-over-reason" class="reason-text"></p>
+
+                <!-- Stats originales -->
+                <div class="summary-header">
+                    <div class="summary-stat">
+                        <span class="stat-label">Puntaje</span>
+                        <span id="summary-score" class="stat-value score-value">0</span>
+                    </div>
+                    <div class="summary-stat rating-stat">
+                        <span class="stat-label">Calificación</span>
+                        <span id="summary-rating" class="stat-value rating-value">—</span>
+                    </div>
+                    <div class="summary-stat">
+                        <span class="stat-label">Duración</span>
+                        <span id="summary-duration" class="stat-value">0m 0s</span>
+                    </div>
+                    <div class="summary-stat">
+                        <span class="stat-label">Infracciones</span>
+                        <span id="summary-violations-count" class="stat-value bad">0</span>
+                    </div>
+                    <div class="summary-stat">
+                        <span class="stat-label">Cumplimientos</span>
+                        <span id="summary-compliances-count" class="stat-value good">0</span>
+                    </div>
+                </div>
+
+                <!-- ── MATEMÁTICAS — Bloque de resultados ──────────────── -->
+                <div class="summary-math-block">
+
+                    <!-- M03 — Resultado aprobado / no aprobado -->
+                    <div class="summary-resultado-grande">
+                        <span id="summary-resultado" class="resultado-texto">—</span>
+                    </div>
+
+                    <!-- M01 — Conteo de ítems + M02 — Porcentaje -->
+                    <div class="summary-header" style="margin-top:10px">
+                        <div class="summary-stat">
+                            <span class="stat-label">✅ Aciertos</span>
+                            <span id="summary-aciertos" class="stat-value good">0</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="stat-label">❌ Errores</span>
+                            <span id="summary-errores" class="stat-value bad">0</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="stat-label">➖ Omisiones</span>
+                            <span id="summary-omisiones" class="stat-value">0</span>
+                        </div>
+                        <div class="summary-stat">
+                            <!-- M02: (aciertos / totalItems) × 100 -->
+                            <span class="stat-label">% Aciertos</span>
+                            <span id="summary-porcentaje" class="stat-value">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- M15 — Distancia y rapidez media -->
+                    <div class="summary-header" style="margin-top:6px">
+                        <div class="summary-stat">
+                            <!-- M15: distancia = Σ |speed| × dt (en metros) -->
+                            <span class="stat-label">📍 Distancia</span>
+                            <span id="summary-distancia" class="stat-value">0 m</span>
+                        </div>
+                        <div class="summary-stat">
+                            <!-- M15: rapidez media = Σ velocidades / n muestras -->
+                            <span class="stat-label">⚡ Rapidez media</span>
+                            <span id="summary-rapidez" class="stat-value">0 km/h</span>
+                        </div>
+                    </div>
+
+                    <!-- M06 — Registro único del intento -->
+                    <div class="summary-intento-box">
+                        <span class="stat-label">🔖 ID del intento:</span>
+                        <span id="summary-intento-id" class="intento-id-valor">—</span>
+                        <br>
+                        <span class="stat-label">📅 Inicio:</span>
+                        <span id="summary-fecha-inicio">—</span>
+                        &nbsp;&nbsp;
+                        <span class="stat-label">Estado:</span>
+                        <span id="summary-estado">—</span>
+                    </div>
+
+                </div>
+                <!-- ── FIN BLOQUE MATEMÁTICAS ──────────────────────────── -->
+
+                <div class="summary-tables">
+                    <div class="summary-section">
+                        <h3>❌ Infracciones Cometidas</h3>
+                        <div class="table-scroll">
+                            <table class="summary-table">
+                                <thead>
+                                    <tr>
+                                        <th>Infracción</th>
+                                        <th>Penalización</th>
+                                        <th>Ordenanza</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="violations-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="summary-section">
+                        <h3>✅ Normas Respetadas</h3>
+                        <div class="table-scroll">
+                            <table class="summary-table">
+                                <thead>
+                                    <tr>
+                                        <th>Cumplimiento</th>
+                                        <th>Puntos</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="compliances-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="btn-restart" class="btn-primary">🔄 INTENTAR DE NUEVO</button>
+            </div>
+        </div>
+
+        <!-- Canvas para Three.js -->
+        <canvas id="webgl-canvas"></canvas>
+
+        <!-- HUD: Heads Up Display -->
+        <div id="hud">
+            <div class="top-bar">
+                <div id="score-container">
+                    <span>Puntaje:</span>
+                    <span id="score-value" class="good">100</span>
+                </div>
+
+                <!-- M04 — Tiempo restante (actualizado en cada frame desde GameEngine) -->
+                <div id="tiempo-restante-container">
+                    <span>⏱</span>
+                    <span id="tiempo-restante" style="color:#facc15;font-weight:bold;">5:00</span>
+                </div>
+
+                <div id="messages-container">
+                    <span id="system-message">¡Bienvenido! Respete las normas de tránsito.</span>
+                </div>
+            </div>
+
+            <div class="bottom-bar">
+                <div class="dashboard">
+                    <div class="analog-dashboard">
+                        <div class="speedometer-analog">
+                            <svg viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="45" fill="rgba(0,0,0,0.5)" stroke="#fff" stroke-width="2"/>
+                                <path d="M 20 80 A 40 40 0 1 1 80 80" fill="none" stroke="#ddd" stroke-width="3" stroke-dasharray="2,2"/>
+                                <text x="50" y="65" text-anchor="middle" fill="#fff" font-size="8">km/h</text>
+                                <text id="speed-text" x="50" y="82" text-anchor="middle" fill="#fff" font-size="12" font-family="monospace">0</text>
+                                <line id="speed-needle" x1="50" y1="50" x2="50" y2="15" stroke="#ef4444" stroke-width="2" transform="rotate(-120 50 50)"/>
+                                <circle cx="50" cy="50" r="3" fill="#fff"/>
+                            </svg>
+                        </div>
+                        <div class="steering-wheel-ui">
+                             <svg id="visual-wheel" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="40" fill="none" stroke="#333" stroke-width="8"/>
+                                <line x1="50" y1="10" x2="50" y2="90" stroke="#333" stroke-width="8"/>
+                                <line x1="10" y1="50" x2="90" y2="50" stroke="#333" stroke-width="8"/>
+                                <circle cx="50" cy="50" r="10" fill="#111"/>
+                             </svg>
+                        </div>
+                    </div>
+
+                    <div class="indicators">
+                        <div id="ind-left" class="indicator">⬅️</div>
+                        <div id="ind-right" class="indicator">➡️</div>
+                    </div>
+                    <div class="gear-indicator">
+                        <span id="gear-value">D</span>
+                    </div>
+                </div>
+
+                <!-- Minimapa -->
+                <div id="minimap-container">
+                    <canvas id="minimap-canvas" width="150" height="150"></canvas>
+                </div>
+            </div>
+
+            <!-- Controles Móviles (Ocultos en Desktop) -->
+            <div id="mobile-controls">
+                <div class="mobile-group-left">
+                    <div class="mobile-signals">
+                        <button id="mbtn-signal-l" class="btn-small">⬅️</button>
+                        <button id="mbtn-signal-r" class="btn-small">➡️</button>
+                    </div>
+                    <div class="steer-controls">
+                        <button id="btn-left">◀</button>
+                        <button id="btn-right">▶</button>
+                    </div>
+                </div>
+
+                <div class="mobile-group-right">
+                    <button id="btn-gear-toggle" class="btn-gear">⚙️ <span id="m-gear-val">D</span></button>
+                    <div class="pedal-controls">
+                        <div class="pedal-pair">
+                            <button id="btn-brake" class="pedal-brake"></button>
+                            <button id="btn-accel" class="pedal-accel"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Map para Three.js desde CDN -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module" src="main.js"></script>
+
+    <!-- Enlace al script de testing -->
+    <script src="testing.js"></script>
+
+</body>
+</html>

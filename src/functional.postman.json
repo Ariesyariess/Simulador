@@ -1,0 +1,56 @@
+{
+  "info": {
+    "name": "Pruebas VELOX",
+    "_postman_id": "velox-tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Login usuario",
+      "request": {
+        "method": "POST",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"email\": \"test@velox.com\", \"password\": \"1234\" }"
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "login"]
+        }
+      }
+    },
+    {
+      "name": "Guardar puntaje",
+      "request": {
+        "method": "POST",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"usuario_id\": 1, \"puntaje\": 85 }"
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/resultados",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "resultados"]
+        }
+      }
+    },
+    {
+      "name": "Ranking",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:3000/api/ranking",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "ranking"]
+        }
+      }
+    }
+  ]
+}
