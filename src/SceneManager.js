@@ -30,7 +30,7 @@ export class SceneManager {
         this.scene.background = TextureGenerator.getSkyTexture();
         this.scene.fog = new THREE.Fog(0x87CEEB, 50, 300);
 
-        this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
         
 
         this.cameraGroup = new THREE.Group();
@@ -42,6 +42,7 @@ export class SceneManager {
             yaw: Math.PI, 
             pitch: 0.3 
         };
+        this.cameraInitialized = false;
         this.isPointerDown = false;
         this.lastPointerPos = { x: 0, y: 0 };
         
@@ -75,10 +76,12 @@ export class SceneManager {
         this.firstPerson = !this.firstPerson;
         if (this.firstPerson) {
             this.fpYaw = 0;
-            this.fpPitch = 0.12; 
+            this.fpPitch = 0.08;
             this.camera.near = 0.05;
+            this.camera.fov = 74;
         } else {
             this.camera.near = 0.1;
+            this.camera.fov = 70;
         }
         this.camera.updateProjectionMatrix();
         if (this.viewButton) this.viewButton.textContent = this.firstPerson ? '🚗 Salir del auto (C)' : 'Vista interior (C)';
@@ -190,7 +193,12 @@ export class SceneManager {
         const targetPos = vehicleMesh.position.clone().add(new THREE.Vector3(x, y, z));
         
         if (!this.renderer.xr.isPresenting) {
-            this.camera.position.lerp(targetPos, 0.15);
+            if (this.cameraInitialized) {
+                this.camera.position.lerp(targetPos, 0.15);
+            } else {
+                this.camera.position.copy(targetPos);
+                this.cameraInitialized = true;
+            }
             
             const lookAtPos = vehicleMesh.position.clone().add(new THREE.Vector3(0, 1.2, 0));
             this.camera.lookAt(lookAtPos);

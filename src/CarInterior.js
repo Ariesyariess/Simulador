@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Reflector } from 'three/addons/objects/Reflector.js';
 console.log('[VeloX] CarInterior.js v8 cargado');
 
 const DRIVER_SIDE = 1;
@@ -21,8 +22,6 @@ function matTrimBlue()    { return new THREE.MeshStandardMaterial({ color: COLOR
 function matSeat()        { return new THREE.MeshStandardMaterial({ color: COLOR.seat,        roughness: 0.9,  metalness: 0.0  }); }
 function matSilver()      { return new THREE.MeshStandardMaterial({ color: COLOR.silver,      roughness: 0.3,  metalness: 1.0  }); }
 function matChrome()      { return new THREE.MeshStandardMaterial({ color: COLOR.chrome,      roughness: 0.15, metalness: 1.0  }); }
-function matGlassMirror() { return new THREE.MeshStandardMaterial({ color: COLOR.glass,       roughness: 0.05, metalness: 1.0  }); }
-
 // ---- Helpers de geometría ----
 function box(w, h, d, mat) {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
@@ -156,10 +155,10 @@ function buildSpeedometer() {
     needle.geometry.translate(0, 0.075 / 2 - 0.008, 0); // pivote en la base
     group.add(needle);
 
-    // Girado 180° para que la carátula mire al conductor.
+    // El panel queda integrado en el frente del tablero, dentro del volante.
     group.rotation.y = Math.PI;
     group.scale.setScalar(0.6);
-    group.position.set(DRIVER_X - 0.20, 0.45, 0.82);
+    group.position.set(DRIVER_X, 0.35, 0.852);
     group.userData = { needle, startA, endA };
     return group;
 }
@@ -175,45 +174,61 @@ function buildRadio() {
 
 function buildSteeringWheel() {
     const group = new THREE.Group();
-    const hubH = 0.03;
+    const hubDepth = 0.028;
 
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.115, 0.014, 14, 48), matPlasticDark());
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.016, 14, 48), matPlasticDark());
     group.add(rim);
 
-    const hub = cyl(0.055, 0.055, hubH, matPlasticDark(), 32);
+    const hub = cyl(0.062, 0.062, hubDepth, matPlasticDark(), 32);
+    hub.rotation.x = Math.PI / 2;
     group.add(hub);
 
-    // Rayos (3)
     for (const angDeg of [-90, 30, 150]) {
         const a = THREE.MathUtils.degToRad(angDeg);
-        const len = 0.155 - 0.02 - 0.055;
-        const spoke = box(len, hubH * 0.7, 0.028, matPlasticDark());
-        spoke.position.set(Math.cos(a) * (0.055 + len / 2), 0, Math.sin(a) * (0.055 + len / 2));
-        spoke.rotation.y = -a;
+        const len = 0.16 - 0.018 - 0.062;
+        const spoke = box(len, 0.018, 0.024, matPlasticDark());
+        spoke.position.set(Math.cos(a) * (0.062 + len / 2), Math.sin(a) * (0.062 + len / 2), 0);
+        spoke.rotation.z = a;
         group.add(spoke);
     }
 
-    // Emblema "V" + bocina
-    const bezel = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.006, 10, 40), matSilver());
-    bezel.position.z = hubH / 2;
+    const bezel = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.004, 10, 40), matSilver());
+    bezel.position.z = 0.018;
     group.add(bezel);
 
-    const vMat = matSilver();
-    const armLen = 0.052, armW = 0.015, armT = 0.01;
-    const armL = box(armW, armLen, armT, vMat);
-    armL.position.set(-0.016, 0.006, hubH / 2 + 0.005);
-    armL.rotation.z = THREE.MathUtils.degToRad(28);
-    const armR = box(armW, armLen, armT, vMat);
-    armR.position.set(0.016, 0.006, hubH / 2 + 0.005);
-    armR.rotation.z = THREE.MathUtils.degToRad(-28);
-    const hornPad = cyl(0.05, 0.05, 0.006, matPlasticDark(), 32);
-    hornPad.position.z = hubH / 2 - 0.002;
-    hornPad.name = 'hornButton';
-    group.add(hornPad, armL, armR);
+    const logoCanvas = document.createElement('canvas');
+    logoCanvas.width = logoCanvas.height = 128;
+    const logoContext = logoCanvas.getContext('2d');
+    logoContext.fillStyle = '#16274a';
+    logoContext.beginPath();
+    logoContext.arc(64, 64, 62, 0, Math.PI * 2);
+    logoContext.fill();
+    logoContext.strokeStyle = '#e8eaee';
+    logoContext.lineWidth = 8;
+    logoContext.lineJoin = 'round';
+    logoContext.beginPath();
+    logoContext.moveTo(37, 38);
+    logoContext.lineTo(64, 91);
+    logoContext.lineTo(91, 38);
+    logoContext.stroke();
+    logoContext.fillStyle = '#e8eaee';
+    logoContext.font = 'bold 12px sans-serif';
+    logoContext.textAlign = 'center';
+    logoContext.fillText('VELOX', 64, 111);
 
-    // Inclinación del volante
+    const logoTexture = new THREE.CanvasTexture(logoCanvas);
+    logoTexture.colorSpace = THREE.SRGBColorSpace;
+    const hornPad = new THREE.Mesh(
+        new THREE.CircleGeometry(0.036, 32),
+        new THREE.MeshStandardMaterial({ map: logoTexture, roughness: 0.5 })
+    );
+    hornPad.position.z = 0.022;
+    hornPad.name = 'hornButton';
+    group.add(hornPad);
+
     group.rotation.x = THREE.MathUtils.degToRad(-18);
-    group.position.set(DRIVER_X, 0.38, 0.68); // subido para que no quede tapado
+    group.rotation.y = Math.PI;
+    group.position.set(DRIVER_X, 0.35, 0.68);
     group.userData = { hornPad };
     return group;
 }
@@ -332,28 +347,45 @@ function buildSeats() {
 
 function buildInteriorMirror() {
     const group = new THREE.Group();
-    // Posición del espejo (cerca del parabrisas, dentro del campo de visión)
     const top = [0, 0.80, 0.55];
     const bot = [0, 0.58, 0.62];
     group.add(cylBetween(top, bot, 0.008, matPlasticDark()));
-    const plate = box(0.22, 0.05, 0.012, matGlassMirror());
-    plate.position.set(bot[0], bot[1] - 0.02, bot[2]);
-    group.add(plate);
+    const housing = box(0.23, 0.065, 0.025, matPlasticDark());
+    housing.position.set(bot[0], bot[1] - 0.02, bot[2]);
+    const glass = new Reflector(new THREE.PlaneGeometry(0.205, 0.046), {
+        clipBias: 0.003,
+        textureWidth: 256,
+        textureHeight: 128,
+        color: 0xb8c7d5,
+    });
+    glass.position.set(bot[0], bot[1] - 0.02, bot[2] - 0.014);
+    glass.rotation.y = Math.PI;
+    group.add(housing, glass);
+    group.userData.mirrors = [glass];
     return group;
 }
 
 function buildSideMirrors() {
     const group = new THREE.Group();
+    const mirrors = [];
     function mirror(x) {
         const m = new THREE.Group();
-        const housing = box(0.05, 0.09, 0.10, matTrimBlue());
-        const glass = box(0.008, 0.09, 0.10, matGlassMirror());
-        glass.position.x = x > 0 ? -0.027 : 0.027; // cara interior mirando a la cabina
+        const housing = box(0.06, 0.085, 0.12, matTrimBlue());
+        const glass = new Reflector(new THREE.PlaneGeometry(0.105, 0.068), {
+            clipBias: 0.003,
+            textureWidth: 256,
+            textureHeight: 160,
+            color: 0xb8c7d5,
+        });
+        glass.rotation.y = x > 0 ? -2.25 : 2.25;
+        glass.position.x = x > 0 ? -0.032 : 0.032;
         m.add(housing, glass);
         m.position.set(x, 0.455, 0.525);
+        mirrors.push(glass);
         return m;
     }
     group.add(mirror(0.715), mirror(-0.715));
+    group.userData.mirrors = mirrors;
     return group;
 }
 
@@ -375,6 +407,22 @@ export function createCarInterior() {
 
     group.add(floor, dash, speedo, radio, wheel, colStalk, consoleGear, pedals, seats, mirrorIn, mirrorsOut);
 
+    const mirrors = [...mirrorIn.userData.mirrors, ...mirrorsOut.userData.mirrors];
+    mirrors.forEach(mirror => {
+        const renderMirror = mirror.onBeforeRender;
+        mirror.onBeforeRender = function(renderer, scene, camera) {
+            const visibility = mirrors.map(other => other.visible);
+            mirrors.forEach(other => {
+                if (other !== this) other.visible = false;
+            });
+            try {
+                renderMirror.call(this, renderer, scene, camera);
+            } finally {
+                mirrors.forEach((other, index) => { other.visible = visibility[index]; });
+            }
+        };
+    });
+
     group.traverse(o => { if (o.isMesh) o.castShadow = false; });
 
     return {
@@ -383,6 +431,7 @@ export function createCarInterior() {
             speedoNeedle: speedo.userData.needle,
             speedoAngles: { start: speedo.userData.startA, end: speedo.userData.endA },
             hornPad: wheel.userData.hornPad,
+            mirrors,
             turnSignalStalk: colStalk.userData.turnSignalStalk,
             gearLever: consoleGear.userData.gearLever,
             brakePedal: pedals.userData.brakePedal,

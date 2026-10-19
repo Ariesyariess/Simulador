@@ -67,7 +67,8 @@ export class VehicleController {
             model.add(interiorGroup);
             this.interiorRefs = refs;
 
-            this.mesh.userData.eye = new THREE.Vector3(DRIVER_X, 0.44, 0.25).add(model.position);
+            this.mesh.userData.eye = new THREE.Vector3(DRIVER_X, 0.68, 0.05).add(model.position);
+            this.mesh.userData.mirrors = refs.mirrors;
             
             const tightSize = new THREE.Vector3(size.x * 0.8, size.y, size.z * 0.95);
             
@@ -99,7 +100,6 @@ export class VehicleController {
         model.traverse(node => {
             if (node.isMesh) {
                 const name = node.name.toLowerCase();
-s
                 const mats = Array.isArray(node.material) ? node.material : [node.material];
                 const matName = mats[0] && mats[0].name ? mats[0].name.toLowerCase() : '';
 
